@@ -1,0 +1,203 @@
+---
+title: "Rapport Accidents du Travail"
+subtitle: "`r params$annee`"
+format:
+  html:
+    theme: cosmo
+    toc: true
+    toc-depth: 2
+    echo: false
+    warning: false
+    self-contained: true
+params:
+  annee: 2023
+---
+
+```{r setup, include=FALSE}
+if (!requireNamespace("pacman", quietly = TRUE)) {
+  install.packages("pacman")
+}
+pacman::p_load(
+  tidyverse,
+  lubridate,
+  scales
+)
+
+# Charger les données
+donnees <- read_csv2("data/at-taux.csv")
+
+# Nettoyer les noms de colonnes
+colnames(donnees) <- c("Date", "Nombre_Accidents", "Jours_Absences", 
+                       "TF_mensuel", "TF_annuel", "TG_mensuel", "TG_annuel")
+
+# Convertir les colonnes en numérique et la date
+donnees <- donnees %>%
+  mutate(
+    across(c(Nombre_Accidents, Jours_Absences, TF_mensuel, TF_annuel, 
+             TG_mensuel, TG_annuel), 
+           ~ as.numeric(str_replace_all(., ",", "."))),
+    Date = as.Date(paste0(Date, "-01")),
+    Annee = year(Date),
+    Mois = month(Date, label = TRUE, abbr = FALSE)
+  )
+
+# Filtrer pour l'année du paramètre
+donnees_annee <- donnees %>%
+  filter(Annee == params$annee)
+```
+
+## Vue d'ensemble
+
+Ce rapport présente les indicateurs d'accidents du travail pour l'année **`r params$annee`**.
+
+### Indicateurs clés
+
+```{r indicateurs-cles}
+total_accidents <- sum(donnees_annee$Nombre_Accidents, na.rm = TRUE)
+total_jours_absences <- sum(donnees_annee$Jours_Absences, na.rm = TRUE)
+tf_moyen <- mean(donnees_annee$TF_mensuel, na.rm = TRUE)
+tg_moyen <- mean(donnees_annee$TG_mensuel, na.rm = TRUE)
+```
+
+::: {.callout-note icon="false"}
+## Résumé annuel `r params$annee`
+
+-   **Nombre total d'accidents** : `r format(total_accidents, big.mark = " ")`
+-   **Jours d'absences cumulés** : `r format(total_jours_absences, big.mark = " ")`
+-   **Taux de fréquence moyen** : `r round(tf_moyen, 2)`
+-   **Taux de gravité moyen** : `r round(tg_moyen, 2)`
+:::
+
+## Évolution mensuelle des accidents
+
+```{r graphique-accidents}
+#| fig-width: 10
+#| fig-height: 5
+
+ggplot(donnees_annee, aes(x = Mois, y = Nombre_Accidents)) +
+  geom_col(fill = "#2C3E50", alpha = 0.8) +
+  geom_text(aes(label = round(Nombre_Accidents)), 
+            vjust = -0.5, size = 3.5, color = "#2C3E50") +
+  labs(
+    title = paste("Nombre d'accidents par mois -", params$annee),
+    x = "Mois",
+    y = "Nombre d'accidents"
+  ) +
+  theme_minimal(base_size = 13) +
+  theme(
+    plot.title = element_text(face = "bold", size = 16),
+    axis.text.x = element_text(angle = 45, hjust = 1)
+  )
+```
+
+## Taux de fréquence
+
+Le taux de fréquence mesure le nombre d'accidents pour un million d'heures travaillées.
+
+```{r graphique-tf}
+#| fig-width: 10
+#| fig-height: 5
+
+ggplot(donnees_annee, aes(x = Mois)) +
+  geom_line(aes(y = TF_mensuel, color = "TF Mensuel", group = 1), 
+            linewidth = 1.2) +
+  geom_point(aes(y = TF_mensuel, color = "TF Mensuel"), 
+             size = 3) +
+  geom_line(aes(y = TF_annuel, color = "TF Annuel glissant", group = 1), 
+            linewidth = 1.2, linetype = "dashed") +
+  scale_color_manual(
+    values = c("TF Mensuel" = "#E74C3C", "TF Annuel glissant" = "#3498DB")
+  ) +
+  labs(
+    title = paste("Taux de fréquence -", params$annee),
+    x = "Mois",
+    y = "Taux de fréquence",
+    color = "Indicateur"
+  ) +
+  theme_minimal(base_size = 13) +
+  theme(
+    plot.title = element_text(face = "bold", size = 16),
+    axis.text.x = element_text(angle = 45, hjust = 1),
+    legend.position = "top"
+  )
+```
+
+## Taux de gravité
+
+Le taux de gravité mesure le nombre de jours d'arrêt pour mille heures travaillées.
+
+```{r graphique-tg}
+#| fig-width: 10
+#| fig-height: 5
+
+ggplot(donnees_annee, aes(x = Mois)) +
+  geom_line(aes(y = TG_mensuel, color = "TG Mensuel", group = 1), 
+            linewidth = 1.2) +
+  geom_point(aes(y = TG_mensuel, color = "TG Mensuel"), 
+             size = 3) +
+  geom_line(aes(y = TG_annuel, color = "TG Annuel glissant", group = 1), 
+            linewidth = 1.2, linetype = "dashed") +
+  scale_color_manual(
+    values = c("TG Mensuel" = "#16A085", "TG Annuel glissant" = "#F39C12")
+  ) +
+  labs(
+    title = paste("Taux de gravité -", params$annee),
+    x = "Mois",
+    y = "Taux de gravité",
+    color = "Indicateur"
+  ) +
+  theme_minimal(base_size = 13) +
+  theme(
+    plot.title = element_text(face = "bold", size = 16),
+    axis.text.x = element_text(angle = 45, hjust = 1),
+    legend.position = "top"
+  )
+```
+
+## Jours d'absences
+
+```{r graphique-absences}
+#| fig-width: 10
+#| fig-height: 5
+
+ggplot(donnees_annee, aes(x = Mois, y = Jours_Absences)) +
+  geom_col(fill = "#9B59B6", alpha = 0.8) +
+  geom_text(aes(label = format(round(Jours_Absences), big.mark = " ")), 
+            vjust = -0.5, size = 3.5, color = "#9B59B6") +
+  labs(
+    title = paste("Jours d'absences par mois -", params$annee),
+    x = "Mois",
+    y = "Jours d'absences"
+  ) +
+  scale_y_continuous(labels = label_number(big.mark = " ")) +
+  theme_minimal(base_size = 13) +
+  theme(
+    plot.title = element_text(face = "bold", size = 16),
+    axis.text.x = element_text(angle = 45, hjust = 1)
+  )
+```
+
+## Tableau récapitulatif
+
+```{r tableau}
+#| echo: false
+
+donnees_annee %>%
+  select(Mois, Nombre_Accidents, Jours_Absences, TF_mensuel, TG_mensuel) %>%
+  arrange(Mois) %>%
+  rename(
+    "Mois" = Mois,
+    "Accidents" = Nombre_Accidents,
+    "Jours d'absences" = Jours_Absences,
+    "TF mensuel" = TF_mensuel,
+    "TG mensuel" = TG_mensuel
+  ) %>%
+  knitr::kable(
+    format.args = list(big.mark = " "),
+    digits = 2
+  )
+```
+
+------------------------------------------------------------------------
+
+*Rapport généré automatiquement le `r format(Sys.Date(), "%d/%m/%Y")`*
