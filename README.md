@@ -1,4 +1,4 @@
-# Génération de Rapports Paramétrés sur les Accidents du Travail
+# Génération de Rapports 
 
 ## L'idée derrière les rapports paramétrés
 
