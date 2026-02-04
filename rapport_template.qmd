@@ -2,13 +2,11 @@
 title: "Rapport Accidents du Travail"
 subtitle: "`r params$annee`"
 format:
-  html:
-    theme: cosmo
+  pdf:
     toc: true
     toc-depth: 2
     echo: false
     warning: false
-    self-contained: true
 params:
   annee: 2023
 ---

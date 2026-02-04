@@ -63,7 +63,7 @@ cat(sprintf(
 # Créer un tibble avec les paramètres pour chaque rapport
 rapports <- tibble(
   input = "rapport_template.qmd",
-  output_file = str_glue("rapport_{annees}.html"),
+  output_file = str_glue("rapport_{annees}.pdf"),
   execute_params = map(annees, ~ list(annee = .x))
 )
 
@@ -83,7 +83,7 @@ pwalk(rapports, function(input, output_file, execute_params) {
   )
 
   # Move the generated file to the rapports directory
-  source_file <- "rapport_template.html"
+  source_file <- "rapport_template.pdf"
   dest_file <- file.path("rapports", output_file)
 
   if (file.exists(source_file)) {
